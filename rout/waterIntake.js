@@ -17,7 +17,7 @@ router.put('/:id',asyncHandler(async(req,res)=>{
         if(t.amoutOfWater>=1000)
     res.status(200).send("you are finsh your need of water today")
         else
-                res.status(200).send(`you take of ${t.amoutOfWater}water today`)
+                res.status(200).send({a:t.amoutOfWater})
 
 
 }))

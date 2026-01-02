@@ -1,0 +1,23 @@
+{
+  "name": "nutrlink",
+  "version": "1.0.0",
+  "description": "��#\u0000 \u0000n\u0000u\u0000t\u0000r\u0000l\u0000i\u0000n\u0000k\u0000\r\u0000 \u0000#\u0000 \u0000n\u0000u\u0000t\u0000r\u0000l\u0000i\u0000n\u0000k\u0000\r\u0000 \u0000#\u0000 \u0000n\u0000u\u0000t\u0000r\u0000l\u0000i\u0000n\u0000k\u0000\r\u0000 \u0000",
+  "main": "app.js",
+ "scripts": {
+  "start": "node server.js",
+  "test": "jest --runInBand"
+}
+,
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/salehnaeem63-alt/nutrlink.git"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "type": "commonjs",
+  "bugs": {
+    "url": "https://github.com/salehnaeem63-alt/nutrlink/issues"
+  },
+  "homepage": "https://github.com/salehnaeem63-alt/nutrlink#readme"
+}
