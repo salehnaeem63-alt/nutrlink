@@ -1,8 +1,13 @@
 const request = require("supertest");
 const app = require('./app');
+const mongoose = require("mongoose"); 
 
 describe("Water Intake Functional Test", () => {
   let userId;
+
+  afterAll(async () => {
+    await mongoose.connection.close();
+  });
 
   test("Create user", async () => {
     const res = await request(app)
