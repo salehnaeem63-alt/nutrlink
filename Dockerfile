@@ -1,5 +1,5 @@
-# Use Node.js
-FROM node:18
+#Use Node.js 18 as base image
+FROM node:18-alpine
 
 # Set working directory
 WORKDIR /app
@@ -8,13 +8,13 @@ WORKDIR /app
 COPY package*.json ./
 
 # Install dependencies
-RUN npm install
+RUN npm install --production
 
-# Copy rest of code
+# Copy application code
 COPY . .
 
-# Expose backend port
+# Expose port
 EXPOSE 3000
 
-# Start the app
+# Start the application
 CMD ["node", "server.js"]
