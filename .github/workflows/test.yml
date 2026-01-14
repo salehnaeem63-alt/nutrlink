@@ -2,9 +2,9 @@ name: Run Tests (Functional Workflow)
 
 on:
   push:
-    branches: [ main, master ]
+    branches: [main, master]
   pull_request:
-    branches: [ main, master ]
+    branches: [main, master]
 
 jobs:
   test:
@@ -22,30 +22,30 @@ jobs:
           --health-retries 5
 
     steps:
-    - name: Checkout code
-      uses: actions/checkout@v3
+      - name: Checkout code
+        uses: actions/checkout@v3
 
-    - name: Setup Node.js
-      uses: actions/setup-node@v3
-      with:
-        node-version: '18'
+      - name: Setup Node.js
+        uses: actions/setup-node@v3
+        with:
+          node-version: "18"
 
-    - name: Install dependencies
-      run: npm install
+      - name: Install dependencies
+        run: npm install
 
-    - name: Wait for MongoDB
-      run: |
-        echo "Waiting for MongoDB to be ready..."
-        sleep 10
+      - name: Wait for MongoDB
+        run: |
+          echo "Waiting for MongoDB to be ready..."
+          sleep 10
 
-    - name: Run tests
-      run: npm test
-      env:
-        MONGODB_URI: mongodb://localhost:27017/waterintake
+      - name: Run tests
+        run: npm test
+        env:
+          MONGODB_URI: mongodb://localhost:27017/waterintake
 
-    - name: Upload test results
-      if: always()
-      uses: actions/upload-artifact@v4  
-      with:
-        name: test-results
-        path: coverage/
+      - name: Upload test results
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: test-results
+          path: coverage/
