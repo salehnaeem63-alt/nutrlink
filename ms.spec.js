@@ -5,6 +5,7 @@ const mongoose = require("mongoose");
 describe("Water Intake Non-Functional Test", () => {
   
   afterAll(async () => {
+    
     await mongoose.connection.close();
   });
 
