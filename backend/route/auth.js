@@ -10,7 +10,8 @@ router.post('/register',asyncHandler(async(req,res)=>{
 const user= await new User({
         email:req.body.email,
         username:req.body.username,
-        password:req.body.passwordnodn
+        password:req.body.password,
+        role:req.body.role
     })
 const result= await user.save()
 res.status(201).send("you are sined up sucssfuly")
