@@ -14,8 +14,13 @@ const registervali= joi.object({
     username:joi.string().alphanum().min(3).max(30).required(),
     password:joi.string().pattern(new RegExp('^[a-zA-Z0-9]{8,30}$')).required(),
     role: joi.string().valid('customer', 'nutritionist').required()
-
 })
+
+const loginVali = joi.object({
+    email: joi.string().email(),
+    username: joi.string(),
+    password: joi.string().required()
+}).xor('email', 'username');
 
 /*
 method:post
@@ -45,11 +50,42 @@ const user= await new User({
     })
 const result= await user.save()
 //creat the token
-const token =jwt.sign({id:user._id,username:user.username}, process.env.JWT_SECRET,{expiresIn: '30d'})
+const token =jwt.sign(
+    {id:user._id,username:user.username},
+    process.env.JWT_SECRET,{expiresIn: '30d'})
 res.status(201).json(token)
 }))
 
 
+
+
+
+
+// Login validation
+/*
+method: POST
+endpoint: /api/auth/login
+desc: Login user
+*/
+router.post('/login',asyncHandler(async (req,res) => {
+    const { error } = loginVali.validate(req.body)
+    if(error)
+        return res.status(400).json(error.details[0].message)
+
+    const user = await User.findOne({email: req.body.email,username:req.body.username})
+    if(!user) 
+        return res.status(400).json("Invalid login")
+
+    const isPassowrdMatch = await bcrypt.compare(req.body.password,user.password)
+    if(!isPassowrdMatch)
+        return res.status(400).json("Invalid login")
+
+    const token = jwt.sign({id:user._id, role:user.role}, process.env.JWT_SECRET, {expiresIn: '30d'})
+
+    const { password, ...other} = user._doc
+    res.status(200).json({...other, token})
+
+}))
 
 
 
