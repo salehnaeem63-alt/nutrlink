@@ -37,7 +37,7 @@ router.post('/register',asyncHandler(async(req,res)=>{
     //check for existing
     isExist=await User.findOne({email:req.body.email})
     if(isExist){
-        res.status(409).json("the user is already exists")
+        return res.status(409).json("the user is already exists")
     }
     // password hashing
     const salt=await bcrypt.genSalt(10)
@@ -73,12 +73,17 @@ router.post('/login',asyncHandler(async (req,res) => {
     if(error)
         return res.status(400).json(error.details[0].message)
 
-    const user = await User.findOne({email: req.body.email,username:req.body.username})
+    const user = await User.findOne({
+    $or: [
+        { email: req.body.email },
+        { username: req.body.username }
+    ]
+})
     if(!user) 
         return res.status(400).json("Invalid login")
 
     const isPassowrdMatch = await bcrypt.compare(req.body.password,user.password)
-    if(!isPassowrdMatch)
+    if(!isPasswordMatch)
         return res.status(400).json("Invalid login")
 
     const token = jwt.sign({id:user._id, role:user.role}, process.env.JWT_SECRET, {expiresIn: '30d'})
