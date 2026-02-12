@@ -7,6 +7,7 @@ const jwt= require('jsonwebtoken')
 const dotenv=require('dotenv')
 const joi=require('joi')
 dotenv.config()
+const authToken=require('../middleware/verifyToken')
 //validation for register
 const registervali= joi.object({
     email:joi.string().required()
@@ -88,7 +89,10 @@ router.post('/login',asyncHandler(async (req,res) => {
 }))
 
 
-
+//xasca
+router.get('/',authToken,asyncHandler(async(req,res)=>{
+res.status(200).json("work done")
+}))
 
 
 
