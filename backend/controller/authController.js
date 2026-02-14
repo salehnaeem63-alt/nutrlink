@@ -2,11 +2,16 @@ const asyncHandler = require('express-async-handler');
 const bcrypt = require('bcrypt');
 const jwt = require('jsonwebtoken');
 const Joi = require('joi');
+<<<<<<< HEAD
 const { OAuth2Client } = require('google-auth-library');
 const User = require('../model/User');
 
 const client = new OAuth2Client(process.env.GOOGLE_CLIENT_ID);
 
+=======
+const User = require('../model/User');
+
+>>>>>>> caa20cbc9b380ea9e058cb259b3063f8e64ac581
 // --- VALIDATION SCHEMAS ---
 const registerSchema = Joi.object({
     username: Joi.string().alphanum().min(3).max(30).required(),
@@ -26,6 +31,7 @@ const loginSchema = Joi.object({
 
 // --- CONTROLLER FUNCTIONS ---
 
+<<<<<<< HEAD
 // @desc    Register a new user (Standard)
 const registerUser = asyncHandler(async (req, res) => {
     const { error } = registerSchema.validate(req.body);
@@ -37,11 +43,43 @@ const registerUser = asyncHandler(async (req, res) => {
     const salt = await bcrypt.genSalt(10);
     const hashedPassword = await bcrypt.hash(req.body.password, salt);
 
+=======
+// @desc    Register a new user
+// @route   POST /api/auth/register
+// @access  Public
+const registerUser = asyncHandler(async (req, res) => {
+    // 1. Validate Input
+    const { error } = registerSchema.validate(req.body);
+    if (error) {
+        res.status(400);
+        throw new Error(error.details[0].message);
+    }
+
+    // 2. Check if user exists
+    const userExists = await User.findOne({ 
+        $or: [{ email: req.body.email }, { username: req.body.username }] 
+    });
+
+    if (userExists) {
+        res.status(409);
+        const message = userExists.email === req.body.email 
+            ? 'Email is already registered' 
+            : 'Username is already taken';
+        throw new Error(message);
+    }
+
+    // 3. Hash Password
+    const salt = await bcrypt.genSalt(10);
+    const hashedPassword = await bcrypt.hash(req.body.password, salt);
+
+    // 4. Create User
+>>>>>>> caa20cbc9b380ea9e058cb259b3063f8e64ac581
     const user = await User.create({
         username: req.body.username,
         email: req.body.email,
         password: hashedPassword,
         role: req.body.role
+<<<<<<< HEAD
         // profilePic will be assigned automatically by Mongoose default
     });
 
@@ -123,3 +161,63 @@ const googleLogin = asyncHandler(async (req, res) => {
     });
 });
 module.exports = { registerUser, loginUser, googleLogin };
+=======
+    });
+
+    // 5. Generate Token
+    if (user) {
+        const token = jwt.sign(
+            { id: user._id, username: user.username, role: user.role },
+            process.env.JWT_SECRET,
+            { expiresIn: '30d' }
+        );
+
+        res.status(201).json({
+            _id: user._id,
+            username: user.username,
+            email: user.email,
+            role: user.role,
+            token
+        });
+    } else {
+        res.status(400);
+        throw new Error('Invalid user data');
+    }
+});
+
+// @desc    Login user
+// @route   POST /api/auth/login
+// @access  Public
+const loginUser = asyncHandler(async (req, res) => {
+    // 1. Validate Input
+    const { error } = loginSchema.validate(req.body);
+    if (error) {
+        res.status(400);
+        throw new Error(error.details[0].message);
+    }
+
+    // 2. Find User
+    const query = req.body.email 
+        ? { email: req.body.email } 
+        : { username: req.body.username };
+
+    const user = await User.findOne(query);
+
+    // 3. Verify Password
+    if (user && (await bcrypt.compare(req.body.password, user.password))) {
+        const token = jwt.sign(
+            { id: user._id, role: user.role },
+            process.env.JWT_SECRET,
+            { expiresIn: '30d' }
+        );
+
+        const { password, ...otherDetails } = user._doc;
+        res.status(200).json({ ...otherDetails, token });
+    } else {
+        res.status(401);
+        throw new Error('Invalid email/username or password');
+    }
+});
+
+module.exports = { registerUser, loginUser };
+>>>>>>> caa20cbc9b380ea9e058cb259b3063f8e64ac581
