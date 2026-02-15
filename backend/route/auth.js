@@ -1,11 +1,7 @@
 const express = require('express');
 const router = express.Router();
 const authToken = require('../middleware/verifyToken'); 
-<<<<<<< HEAD
 const { registerUser, loginUser, googleLogin } = require('../controller/authController');
-=======
-const { registerUser, loginUser } = require('../controller/authController');
->>>>>>> caa20cbc9b380ea9e058cb259b3063f8e64ac581
 
 // --- ROUTES ---
 

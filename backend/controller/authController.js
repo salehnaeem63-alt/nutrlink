@@ -2,22 +2,16 @@ const asyncHandler = require('express-async-handler');
 const bcrypt = require('bcrypt');
 const jwt = require('jsonwebtoken');
 const Joi = require('joi');
-<<<<<<< HEAD
 const { OAuth2Client } = require('google-auth-library');
 const User = require('../model/User');
-
 const client = new OAuth2Client(process.env.GOOGLE_CLIENT_ID);
 
-=======
-const User = require('../model/User');
-
->>>>>>> caa20cbc9b380ea9e058cb259b3063f8e64ac581
 // --- VALIDATION SCHEMAS ---
 const registerSchema = Joi.object({
     username: Joi.string().alphanum().min(3).max(30).required(),
     email: Joi.string().email({ minDomainSegments: 2, tlds: { allow: ['com', 'net'] } }).required(),
     password: Joi.string()
-        .pattern(new RegExp('^(?=.*[a-z])(?=.*[A-Z])(?=.*[0-9])(?=.*[!@#$%^&*])(?=.{8,})'))
+        .pattern(new RegExp('^(?=.*[a-z])(?=.*[A-Z])(?=.*[0-9])(?=.*[!@#$%^&*])(?=.{8,30})'))
         .required()
         .messages({ 'string.pattern.base': 'Password must be at least 8 characters long and include at least one uppercase letter, one number, and one special character.'}),
     role: Joi.string().valid('customer', 'nutritionist').required()
