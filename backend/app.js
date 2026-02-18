@@ -1,5 +1,5 @@
 const express = require("express");
-const cors = require("cors")
+const cors = require("cors");
 const app = express();
 const connectDB = require('./config/db');
 const { errorHandler, notFound } = require('./middleware/errorMiddleware');
@@ -8,23 +8,51 @@ const dotenv = require('dotenv');
 dotenv.config();
 connectDB();
 
-app.use(cors())
+app.use(cors());
 app.use(express.json());
 
-// 1. API Routes
+// ══════════════════════════════════════════════════════════════
+// API ROUTES
+// ══════════════════════════════════════════════════════════════
+
+// Auth Routes (login, register, google)
 app.use('/nutrlink/api/auth', require('./route/auth'));
 
-// 2. The Home Route (Now uncommented and active)
+// Admin Routes (approve, reject, pending) ← THIS WAS MISSING!
+app.use('/nutrlink/api/admin', require('./route/admin'));
+
+// ══════════════════════════════════════════════════════════════
+// OTHER ROUTES
+// ══════════════════════════════════════════════════════════════
+
+// The Home Route
 app.get('/nutrlink/login', (req, res) => {
     res.send('<a href="/nutrlink/login/google">Authentication with Google</a>');
 });
 
-// 3. Error Handlers (These MUST come after all routes)
+// Health check
+app.get('/', (req, res) => {
+    res.json({ 
+        message: 'NutriPlan API is running',
+        cloudinary: process.env.CLOUDINARY_CLOUD_NAME ? '✅ Configured' : '❌ Not configured'
+    });
+});
+
+// ══════════════════════════════════════════════════════════════
+// ERROR HANDLERS (MUST come after all routes)
+// ══════════════════════════════════════════════════════════════
 app.use(notFound);
 app.use(errorHandler);
 
-// 4. Start the server (LAST step)
+// ══════════════════════════════════════════════════════════════
+// START SERVER
+// ══════════════════════════════════════════════════════════════
 const PORT = process.env.PORT || 5000;
 app.listen(PORT, () => {
-    console.log(`Server is running on port ${PORT}`);
+    console.log(`\n${'═'.repeat(60)}`);
+    console.log('🚀 NutriPlan Server Started');
+    console.log('═'.repeat(60));
+    console.log(`📡 Server:     http://localhost:${PORT}`);
+    console.log(`📁 Cloudinary: ${process.env.CLOUDINARY_CLOUD_NAME || '❌ NOT CONFIGURED'}`);
+    console.log(`${'═'.repeat(60)}\n`);
 });
