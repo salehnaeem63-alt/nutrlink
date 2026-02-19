@@ -21,6 +21,9 @@ app.use('/nutrlink/api/auth', require('./route/auth'));
 // Admin Routes (approve, reject, pending) ← THIS WAS MISSING!
 app.use('/nutrlink/api/admin', require('./route/admin'));
 
+app.use('/nutrlink/api/profile', require('./route/profile'));
+
+
 // ══════════════════════════════════════════════════════════════
 // OTHER ROUTES
 // ══════════════════════════════════════════════════════════════
