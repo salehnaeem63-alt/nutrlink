@@ -15,4 +15,4 @@ const customerProfileSchema = new mongoose.Schema({
     allergies: [String]
     }, { timestamps: true });
 
-module.exports = mongoose.model('Profile', customerProfileSchema);
+module.exports = mongoose.model('Customers', customerProfileSchema);

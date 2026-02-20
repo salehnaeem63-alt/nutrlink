@@ -47,7 +47,7 @@ const updateProfile = asyncHandler(async (req,res) => {
     res.json(updatedProfile)
 })
 
-const getAllnutritionist = asyncHandler(async (req,res) => {
+const getAllNutritionist = asyncHandler(async (req,res) => {
     const nutritionists = await nutritionists.find().populate('user', ['username', 'email'])
 
     if(!nutritionists || nutritionists.length === 0) {
@@ -59,4 +59,4 @@ const getAllnutritionist = asyncHandler(async (req,res) => {
 })
 
 
-module.exports = { createProfile, getProfile, updateProfile, getAllnutritionist }
+module.exports = { createProfile, getProfile, updateProfile, getAllNutritionist }
