@@ -2,7 +2,7 @@ const asyncHandler = require('express-async-handler')
 const Profile = require('../model/customerProfile')
 
 const createProfile = asyncHandler(async (req,res) => {
-    const { age, gender, height, currentWeight, targetWeight, activityLevel, allergies } = req.body;
+    const { age, gender, height, currentWeight, targetWeight, allergies } = req.body;
 
     const existingProfile = await Profile.findOne({user: req.user.id})
     if(existingProfile) {
@@ -26,7 +26,7 @@ const createProfile = asyncHandler(async (req,res) => {
 // 2. Get Current User's Profile
 const getProfile = asyncHandler(async (req, res) => {
     // Find profile and populate user details
-    const profile = await Profile.findOne({ user: req.user.id }).populate('user', ['name', 'email']);
+    const profile = await Profile.findOne({ user: req.user.id }).populate('user', ['username', 'email']);
 
     if (!profile) {
         res.status(404);
@@ -50,8 +50,8 @@ const updateProfile = asyncHandler(async (req, res) => {
         throw new Error('Profile not found');
     }
 
-    res.status(200).json(updatedProfile);
+    res.json(updatedProfile);
 });
 
-module.exports = { createProfile, getProfile, updateProfile}
+module.exports = { createProfile, getProfile, updateProfile }
 
