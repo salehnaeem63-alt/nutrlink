@@ -9,10 +9,10 @@ router.get('/me', authToken, getProfile)
 router.put('/me', authToken, updateProfile)
 
 //goals
-router.post('/',authToken,createGoal)
-router.put('/',authToken,goalDone)
-router.delete('/:goal_id',authToken,deleteGoal)
-router.get('/',authToken,getGoal)
+router.post('/goal',authToken,createGoal)
+router.put('/goal',authToken,goalDone)
+router.delete('/goal/:goal_id',authToken,deleteGoal)
+router.get('/goal',authToken,getGoal)
 
 module.exports=router
 
