@@ -12,7 +12,15 @@ const customerProfileSchema = new mongoose.Schema({
     height: Number, // in cm
     currentWeight: Number, // in kg
     targetWeight: Number,
-    allergies: [String]
+    allergies: [String],
+    goals:[{
+        data:{type:String},
+        status:{
+            type:String,
+            enum:["done","pending"],
+            default:"pending"
+        }
+    }]
     }, { timestamps: true });
 
 module.exports = mongoose.model('Customers', customerProfileSchema);
