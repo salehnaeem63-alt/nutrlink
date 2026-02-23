@@ -18,12 +18,12 @@ app.use(express.json());
 // Auth Routes (login, register, google)
 app.use('/nutrlink/api/auth', require('./route/auth'));
 
-// Admin Routes (approve, reject, pending) ← THIS WAS MISSING!
+// Admin Routes (approve, reject, pending)  THIS WAS MISSING!
 app.use('/nutrlink/api/admin', require('./route/admin'));
 
-app.use('/nutrlink/api/customer/profile', require('./route/customerProfile'));
+app.use('/nutrlink/api/customer/profile', require('./route/customer'));
 
-app.use('/nutrlink/api/nutritionist/profile', require('./route/nutritionistProfile'));
+app.use('/nutrlink/api/nutritionist', require('./route/nutritionist'));
 
 
 // ══════════════════════════════════════════════════════════════
