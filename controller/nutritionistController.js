@@ -105,7 +105,7 @@ const getFilteredCards = asyncHandler(async (req,res) => {
     .populate('user', ['username',' profilePic'])
     .select('specialization cardBio rating reviewCount price languages')
 
-    res.json(cards)
+    res.json({count: cards.length, cards})
 })
 
 
