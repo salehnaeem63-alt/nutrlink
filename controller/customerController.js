@@ -1,6 +1,6 @@
 const asyncHandler = require('express-async-handler')
 const Profile = require('../model/customer')
-
+const Customers = require('../model/Customer')
 const createProfile = asyncHandler(async (req,res) => {
     const { age, gender, height, currentWeight, targetWeight, allergies } = req.body;
 

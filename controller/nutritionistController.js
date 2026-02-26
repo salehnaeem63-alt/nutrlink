@@ -3,6 +3,7 @@ const Nutritionist = require('../model/Nutritionist');
 
 const createProfile = asyncHandler(async (req,res) => {
     const { specialization, bio, yearsOfExperience, clientServed } = req.body;
+    
 
     const existingProfile = await Nutritionist.findOne({user:req.user.id})
     if(existingProfile) {
@@ -15,14 +16,17 @@ const createProfile = asyncHandler(async (req,res) => {
         specialization,
         bio,
         yearsOfExperience,
-        clientServed
+        clientServed,
+        price
     });
 
     res.status(201).json(profile)
 });
 
 const getProfile = asyncHandler(async (req,res) => {
-    const profile = await Nutritionist.findOne({user: req.user.id }).populate('user',['username','email'])
+    const profile = await Nutritionist.findOne({user: req.user.id })
+    .select('specialization bio yearsOfExperience clientServed rating reviewCount languages price ')
+    .populate('user',['username','email'])
 
     if(!profile) {
         res.status(404)
@@ -55,7 +59,10 @@ const getAllNutritionist = asyncHandler(async (req,res) => {
         throw new Error('No nutritionists found')
     }
 
-    res.json(nutritionists)
+    res.json({
+        count: nutritionists.length,
+        nutritionists
+    })
 })
 
 
