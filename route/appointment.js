@@ -9,7 +9,7 @@ const {
     deleteSlot,
     getAvailableSlots, 
     bookAppointment, 
-    getCustomerApppointments,
+    getCustomerAppointments,
     getNutritionistSchedule,
     cancelAppointment,
     markCompleted,
@@ -28,7 +28,7 @@ router.put('/complete/:id', authToken, nutriValidation, markCompleted)
 
 // CUSTOMER ROUTES
 router.put('/book/:id', authToken, cusValidation, bookAppointment);
-router.get('/customer-appointments', authToken, cusValidation, getCustomerApppointments);
+router.get('/customer-appointments', authToken, cusValidation, getCustomerAppointments);
 router.put('/reschedule', authToken, cusValidation, rescheduleAppointment);
 
 

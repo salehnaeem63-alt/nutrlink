@@ -84,7 +84,7 @@ const bookAppointment = asyncHandler(async (req, res) => {
     res.json({ message: 'done' })
 })
 
-const getCustomerApppointments = asyncHandler(async (req, res) => {
+const getCustomerAppointments = asyncHandler(async (req, res) => {
     const customerId = req.user.id
 
     const appointments = await Appointment.find({ customerId, status:'booked'})
@@ -109,8 +109,12 @@ const getNutritionistSchedule = asyncHandler( async (req, res) => {
     const nutritionistId = req.user.id
     const { status } = req.query
 
-const query = { nutritionistId, status: { $ne: 'completed' } };
-
+    const query = { nutritionistId };
+    if (status) {
+        query.status = status;
+    } else {
+        query.status = { $ne: 'completed' };
+    }
     const schedule = await Appointment.find(query)
     .populate('customerId', 'username email')
     .sort({ date: 1, timeSlot: 1})
@@ -169,7 +173,7 @@ const markCompleted = asyncHandler(async (req, res) => {
 
     if(appointment.nutritionistId.toString() !== nutritionistId) {
         res.status(401)
-        throw new Error('No authorized to delete this slot')
+        throw new Error('No authorized to complete this slot')
     }
 
     if(appointment.status !== 'booked') {
@@ -259,7 +263,7 @@ module.exports = {
     deleteSlot,
     getAvailableSlots, 
     bookAppointment, 
-    getCustomerApppointments,
+    getCustomerAppointments,
     getNutritionistSchedule,
     cancelAppointment,
     markCompleted,

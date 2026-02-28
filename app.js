@@ -28,6 +28,8 @@ app.use('/nutrlink/api/nutritionist', require('./route/nutritionist'));
 app.use('/nutrlink/api/appointments', require('./route/appointment'))
 
 app.use('/nutrlink/api/customer/goal', require('./route/goal'));
+
+app.use('/nutrlink/api/plan', require('./route/dietPlan'))
 // ══════════════════════════════════════════════════════════════
 // OTHER ROUTES
 // ══════════════════════════════════════════════════════════════

@@ -30,6 +30,6 @@ const appointments = new mongoose.Schema({
     }
 }, { timestamps: true });
 
-appointments.index({ nutritionistId: 1, data: 1, timeSlot: 1}, {unique: true})
+appointments.index({ nutritionistId: 1, date: 1, timeSlot: 1}, {unique: true})
 
 module.exports = mongoose.model('Appointments', appointments)
