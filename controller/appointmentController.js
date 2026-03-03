@@ -1,5 +1,6 @@
 const asyncHandler = require('express-async-handler')
 const Appointment = require('../model/Appointment')
+const Nutritionist = require('../model/Nutritionist')
 
 const createSlot = asyncHandler(async (req,res) => {
     const nutritionistId = req.user.id
@@ -173,18 +174,38 @@ const markCompleted = asyncHandler(async (req, res) => {
 
     if(appointment.nutritionistId.toString() !== nutritionistId) {
         res.status(401)
-        throw new Error('No authorized to complete this slot')
+        throw new Error('Not authorized to modify this slot')
     }
 
-    if(appointment.status !== 'booked') {
-        res.status(400)
-        throw new Error('Cannot complete a non booked slot. book one first.')
+// The Toggle Logic
+    if(appointment.status === 'booked') {
+        appointment.status = 'completed';
+        
+        // Add 1 to clientServed
+        await Nutritionist.findOneAndUpdate({ user: nutritionistId }, { $inc: { clientServed: 1 } });
+
+    } else if(appointment.status === 'completed') {
+        appointment.status = 'booked';
+        
+        // Subtract 1 from clientServed (Undo)
+const updatedProfile = await Nutritionist.findOneAndUpdate(
+    { user: nutritionistId }, 
+    { $inc: { clientServed: -1 } },
+    { new: true } 
+);
+
+console.log("Database Result:", updatedProfile);
+    } else {
+        res.status(400);
+        throw new Error('Can only toggle appointments that are either booked or completed.');
     }
 
-    appointment.status = 'completed'
     await appointment.save()
 
-    res.json({ message: 'Appointment completed successfully' })
+    res.json({ 
+        message: `Appointment successfully changed to ${appointment.status}`,
+        currentStatus: appointment.status 
+    })
 })
 
 const getAppointmentHistory = asyncHandler(async (req, res) => {
