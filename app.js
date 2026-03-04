@@ -30,6 +30,7 @@ app.use('/nutrlink/api/appointments', require('./route/appointment'))
 app.use('/nutrlink/api/customer/goal', require('./route/goal'));
 
 app.use('/nutrlink/api/plan', require('./route/dietPlan'))
+app.use('/nutrlink/api/AI', require('./route/ai'));
 
 app.use('/nutrlink/api/dashboard', require('./route/dashboard'))
 // ══════════════════════════════════════════════════════════════
