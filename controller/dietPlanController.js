@@ -85,9 +85,19 @@ const getDiets = asyncHandler(async (req, res) => {
         .populate('nutritionistId', 'username email')
         .populate('customerId', 'username email')
     
+    if (diets.length === 0) {
+        return res.status(200).json({
+            success: true,
+            count: 0,
+            diets: [],
+            message: req.user.role === 'nutritionist' 
+                ? "You haven't created any diet plans for clients yet." 
+                : "You don't have any diet plans yet. Start by booking a nutritionist!"
+        })
+    }
 
     const formatedDiets = diets.map(diet => {
-const { meals, ...dietObj } = diet.toObject()
+    const { meals, ...dietObj } = diet.toObject()
 
         return {
             _id: dietObj._id,
