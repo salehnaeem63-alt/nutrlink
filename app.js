@@ -34,6 +34,7 @@ app.use('/nutrlink/api/AI', require('./route/ai'));
 
 app.use('/nutrlink/api/dashboard', require('./route/dashboard'))
 app.use('/nutrlink/api/calculator',require('./route/calculator'))
+ app.use('/nutrlink/api/progress',require('./route/progress'))
 // ══════════════════════════════════════════════════════════════
 // OTHER ROUTES
 // ══════════════════════════════════════════════════════════════
