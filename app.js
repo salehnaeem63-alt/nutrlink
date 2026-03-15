@@ -30,10 +30,13 @@ app.use('/nutrlink/api/appointments', require('./route/appointment'))
 app.use('/nutrlink/api/customer/goal', require('./route/goal'));
 
 app.use('/nutrlink/api/plan', require('./route/dietPlan'))
+app.use('/nutrlink/api/AI', require('./route/ai'));
 
 app.use('/nutrlink/api/dashboard', require('./route/dashboard'))
 
 app.use('/nutrlink/api/reviews', require('./route/review'))
+app.use('/nutrlink/api/calculator', require('./route/calculator'))
+app.use('/nutrlink/api/progress', require('./route/progress'))
 // ══════════════════════════════════════════════════════════════
 // OTHER ROUTES
 // ══════════════════════════════════════════════════════════════
@@ -45,7 +48,7 @@ app.get('/nutrlink/login', (req, res) => {
 
 // Health check
 app.get('/', (req, res) => {
-    res.json({ 
+    res.json({
         message: 'NutriPlan API is running',
         cloudinary: process.env.CLOUDINARY_CLOUD_NAME ? '✅ Configured' : '❌ Not configured'
     });

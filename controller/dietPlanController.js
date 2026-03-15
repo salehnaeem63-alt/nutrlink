@@ -134,8 +134,8 @@ const getDiets = asyncHandler(async (req, res) => {
     res.json({
         count: formatedDiets.length,
         diets: formatedDiets
-    });
-});
+    })
+})
 
 const markMealAsDone = asyncHandler(async (req, res) => {
     const { dietId, mealId } = req.params
@@ -155,35 +155,58 @@ const markMealAsDone = asyncHandler(async (req, res) => {
     }
 
     const meal = diet.meals.id(mealId)
-    if (!meal) {
+
+    if(!meal) {
         res.status(404)
         throw new Error('Meal not found')
     }
 
     meal.isCompleted = !meal.isCompleted
 
+    
     const completedCount = diet.meals.filter(m => m.isCompleted).length;
     const totalMeals = diet.meals.length;
     const progressPercentage = Math.round((completedCount / totalMeals) * 100);
-
-    if (progressPercentage === 100)
+    
+    if(progressPercentage === 100) 
         diet.status = 'completed'
-    else if (progressPercentage > 0 && progressPercentage < 100)
+    else if(progressPercentage > 0 && progressPercentage < 100)
         diet.status = 'in progress'
-    else if (progressPercentage === 0)
+    else if(progressPercentage === 0)
         diet.status = 'pending'
-
+    
     diet.progress = progressPercentage
     await diet.save()
 
+    // ─── Auto-sync mealsLogged in DailyLog ───
+    const today = new Date()
+    today.setUTCHours(0, 0, 0, 0)
+
+    // Get today's meals from this diet plan
+    const todayMeals = diet.meals.filter(m => {
+        const mealDate = new Date(m.date)
+        mealDate.setUTCHours(0, 0, 0, 0)
+        return mealDate.getTime() === today.getTime()
+    })
+
+    // mealsLogged = true only if ALL of today's meals are completed
+    const allTodayDone = todayMeals.length > 0 && todayMeals.every(m => m.isCompleted)
+
+    await DailyLog.findOneAndUpdate(
+        { user: req.user.id, date: today },
+        { $set: { mealsLogged: allTodayDone } },
+        { upsert: true, new: true, setDefaultsOnInsert: true }
+    )
+    // ─────────────────────────────────────────
+
     res.json({
         message: `Meal marked as ${meal.isCompleted ? 'completed' : 'incomplete'}`,
-        meal: meal,
+        meal,
         progress: `${progressPercentage}%`,
-        dietStatus: diet.status
+        dietStatus: diet.status,
+        mealsLogged: allTodayDone
     })
 })
-
 const addMealToDiet = asyncHandler(async (req, res) => {
     const dietId = req.params.id;
     const { name, date } = req.body; 
@@ -208,6 +231,7 @@ const addMealToDiet = asyncHandler(async (req, res) => {
         throw new Error('Meal date must be within the diet plan duration');
     }
 
+    // 🔥 DUPLICATION CHECK: Check if a meal with this name already exists on this date
     const isDuplicate = diet.meals.some(
         (meal) => meal.name === name && meal.date.toISOString() === new Date(date).toISOString()
     );
