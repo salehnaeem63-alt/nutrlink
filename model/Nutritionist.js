@@ -51,4 +51,4 @@ const nutritionistProfileSchema = new mongoose.Schema({
     }
 }, { timestamps: true });
 
-module.exports = mongoose.model('Nutritionists', nutritionistProfileSchema )
+module.exports = mongoose.model('Nutritionist', nutritionistProfileSchema )
