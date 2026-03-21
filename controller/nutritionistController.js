@@ -1,10 +1,11 @@
 const asyncHandler = require('express-async-handler')
 const Nutritionist = require('../model/Nutritionist');
+const Appointment = require('../model/Appointment')
 
 
-const createProfile = asyncHandler(async (req,res) => {
-    const { specialization, bio, yearsOfExperience, clientServed,price } = req.body;
-    
+const createProfile = asyncHandler(async (req, res) => {
+    const { specialization, bio, yearsOfExperience, clientServed, price, languages } = req.body;
+
 
 
     const existingProfile = await Nutritionist.findOne({ user: req.user.id })
@@ -19,7 +20,8 @@ const createProfile = asyncHandler(async (req,res) => {
         bio,
         yearsOfExperience,
         clientServed,
-        price
+        price,
+        languages
     });
 
     res.status(201).json(profile)
@@ -67,29 +69,26 @@ const getAllNutritionist = asyncHandler(async (req, res) => {
     })
 })
 
-
-// Cards Work
-const createUpdateCard = asyncHandler(async (req, res) => {
-    const {
-        specialization,
-        cardBio,
-        languages,
-        price
-    } = req.body;
+const updateCardDetails = asyncHandler(async (req, res) => {
+    const { specialization, cardBio, languages, price } = req.body;
 
     const card = await Nutritionist.findOneAndUpdate(
         { user: req.user.id },
         {
-            user: req.user.id,
             specialization,
             cardBio,
             languages,
             price
         },
-        { new: true, upsert: true } // Add this!
+        { new: true, runValidators: true } // Removed upsert: true
     ).select('specialization cardBio languages price yearsOfExperience reviewCount rating clientServed');
 
-    res.json(card); // Add this!
+    if (!card) {
+        res.status(404);
+        throw new Error('Nutritionist profile not found. Create a profile first.');
+    }
+
+    res.json(card);
 });
 
 const getFilteredCards = asyncHandler(async (req, res) => {
@@ -103,12 +102,18 @@ const getFilteredCards = asyncHandler(async (req, res) => {
     if (minRating) queryFilter.rating = { $gte: minRating }
     if (yearsOfExperience) queryFilter.yearsOfExperience = { $gte: yearsOfExperience }
 
+    // 1. Find all unique nutritionist IDs that have at least one 'available' slot
+    const availableNutritionistIds = await Appointment.find({ status: 'available' }).distinct('nutritionistId');
+
+    // 2. Add those IDs to your query filter to hide inactive cards
+    queryFilter._id = { $in: availableNutritionistIds };
+
     const cards = await Nutritionist.find(queryFilter)
-        .populate('user', ['username', ' profilePic'])
+        .populate('user', ['username', 'profilePic'])
         .select('specialization cardBio rating reviewCount price languages')
 
     res.json({ count: cards.length, cards })
 })
 
 
-module.exports = { createProfile, getProfile, updateProfile, getAllNutritionist, createUpdateCard, getFilteredCards }
+module.exports = { createProfile, getProfile, updateProfile, getAllNutritionist, updateCardDetails, getFilteredCards }
