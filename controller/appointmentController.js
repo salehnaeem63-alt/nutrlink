@@ -128,7 +128,7 @@ const getNutritionistSchedule = asyncHandler(async (req, res) => {
     query.status = { $ne: 'completed' };
   }
   const schedule = await Appointment.find(query)
-    .populate('customerId', 'username email')
+    .populate('customerId', 'username email profilePic')
     .sort({ date: 1, timeSlot: 1 })
 
   if (schedule.length === 0) {
