@@ -75,14 +75,19 @@ const goalDone=asyncHandler(async(req,res)=>{
 })
 //remove goal 
 // rout: nutrlink/api/customer/goal/
-const deleteGoal=asyncHandler(async(req,res)=>{
-    const goal= await Customer.findOneAndUpdate({user:req.user.id},
-        {$pull:{goals:{_id:req.params.goal_id}}},
-        {new:true}
-    )
-            if(!goal){return res.status(404).json("the customer not found")}
-        res.status(200).json(goal)
-})
+const deleteGoal = asyncHandler(async (req, res) => {
+    const customer = await Customer.findOneAndUpdate(
+        { user: req.user.id },
+        { $pull: { goals: { _id: req.params.goal_id } } },
+        { new: true } // This returns the updated document
+    );
+
+    if (!customer) {
+        return res.status(404).json({ message: "Customer profile not found" });
+    }
+    res.status(200).json(customer.goals);
+});
+
 //get all goal 
 // rout: nutrlink/api/customer/goal
 const getGoal=asyncHandler(async(req,res)=>{

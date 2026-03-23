@@ -1,6 +1,7 @@
 const asyncHandler = require('express-async-handler')
 const Nutritionist = require('../model/Nutritionist');
-const Appointment = require('../model/Appointment')
+const Appointment = require('../model/Appointment');
+const Customer = require('../model/Customer')
 
 
 const createProfile = asyncHandler(async (req, res) => {
@@ -20,6 +21,7 @@ const createProfile = asyncHandler(async (req, res) => {
         bio,
         yearsOfExperience,
         clientServed,
+        cardBio: req.body.cardBio || bio.substring(0, 150),
         price,
         languages
     });
@@ -69,31 +71,10 @@ const getAllNutritionist = asyncHandler(async (req, res) => {
     })
 })
 
-const updateCardDetails = asyncHandler(async (req, res) => {
-    const { specialization, cardBio, languages, price } = req.body;
-
-    const card = await Nutritionist.findOneAndUpdate(
-        { user: req.user.id },
-        {
-            specialization,
-            cardBio,
-            languages,
-            price
-        },
-        { new: true, runValidators: true } // Removed upsert: true
-    ).select('specialization cardBio languages price yearsOfExperience reviewCount rating clientServed');
-
-    if (!card) {
-        res.status(404);
-        throw new Error('Nutritionist profile not found. Create a profile first.');
-    }
-
-    res.json(card);
-});
-
 const getFilteredCards = asyncHandler(async (req, res) => {
-    const { specialization, languages, maxPrice, minRating, yearsOfExperience } = req.query
+    const limit = parseInt(req.query.limit) || 0;
 
+    const { specialization, languages, maxPrice, minRating, yearsOfExperience } = req.query
     let queryFilter = {}
 
     if (specialization) queryFilter.specialization = specialization
@@ -104,16 +85,55 @@ const getFilteredCards = asyncHandler(async (req, res) => {
 
     // 1. Find all unique nutritionist IDs that have at least one 'available' slot
     const availableNutritionistIds = await Appointment.find({ status: 'available' }).distinct('nutritionistId');
-
-    // 2. Add those IDs to your query filter to hide inactive cards
-    queryFilter._id = { $in: availableNutritionistIds };
+    queryFilter.user = { $in: availableNutritionistIds };
 
     const cards = await Nutritionist.find(queryFilter)
         .populate('user', ['username', 'profilePic'])
         .select('specialization cardBio rating reviewCount price languages')
+        .sort({ rating: -1 })
+        .limit(limit)
 
     res.json({ count: cards.length, cards })
 })
 
+const getRecommendedForUser = asyncHandler(async (req, res) => {
+    const customer = await Customer.findOne({ user: req.user.id })
 
-module.exports = { createProfile, getProfile, updateProfile, getAllNutritionist, updateCardDetails, getFilteredCards }
+    const activeGoals = customer?.goals?.filter(goal => goal.status === 'pending') || []
+    const userLanguages = customer?.languages || []
+
+    if (activeGoals.length === 0)
+        return res.json([])
+
+    const goalKeywords = activeGoals.map(goal => goal.data)
+
+    const recommended = await Nutritionist.find({
+        $and: [
+            { specialization: { $in: goalKeywords } },
+            { languages: { $in: userLanguages } }
+        ]
+    })
+        .populate('user', ['username', 'profilePic'])
+        .select('specialization cardBio rating reviewCount price languages')
+        .sort({ rating: -1 })
+        .limit(10)
+
+
+    if (recommended.length === 0) {
+        const goalOnlyMatch = await Nutritionist.find({
+            specialization: { $in: goalKeywords }
+        })
+            .populate('user', ['username', 'profilePic'])
+            .sort({ rating: -1 })
+            .limit(10)
+        return res.json(goalOnlyMatch)
+    }
+
+    
+
+    res.json(recommended);
+})
+
+
+
+module.exports = { createProfile, getProfile, updateProfile, getAllNutritionist, getFilteredCards, getRecommendedForUser }
