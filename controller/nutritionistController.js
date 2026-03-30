@@ -2,7 +2,7 @@ const asyncHandler = require('express-async-handler')
 const Nutritionist = require('../model/Nutritionist');
 
 const createProfile = asyncHandler(async (req,res) => {
-    const { specialization, bio, yearsOfExperience, clientServed,price } = req.body;
+    const { specialization, bio, yearsOfExperience, clientServed} = req.body;
     
 
     const existingProfile = await Nutritionist.findOne({user:req.user.id})
@@ -16,8 +16,7 @@ const createProfile = asyncHandler(async (req,res) => {
         specialization,
         bio,
         yearsOfExperience,
-        clientServed,
-        price
+        clientServed
     });
 
     res.status(201).json(profile)
