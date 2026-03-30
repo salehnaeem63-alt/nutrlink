@@ -49,7 +49,7 @@ const nutritionistProfileSchema = new mongoose.Schema({
     price: {
         type: Number,
         min: [0, 'Price cannot be negative'],
-        max: [500, 'Price cannot exceed 500 dollars per hour']
+        max: [300, 'Price cannot exceed 500 dollars per hour']
     }
 }, { timestamps: true });
 

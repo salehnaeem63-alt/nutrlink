@@ -74,14 +74,22 @@ const getAllNutritionist = asyncHandler(async (req, res) => {
 const getFilteredCards = asyncHandler(async (req, res) => {
     const limit = parseInt(req.query.limit) || 0;
 
-    const { specialization, languages, maxPrice, minRating, yearsOfExperience } = req.query
+    const { specialization, languages, maxPrice, minRating, yearsOfExperience, sortBy } = req.query
     let queryFilter = {}
 
-    if (specialization) queryFilter.specialization = specialization
-    if (languages) queryFilter.languages = languages
-    if (maxPrice) queryFilter.price = { $lte: maxPrice }
-    if (minRating) queryFilter.rating = { $gte: minRating }
-    if (yearsOfExperience) queryFilter.yearsOfExperience = { $gte: yearsOfExperience }
+    if (specialization) queryFilter.specialization = { $in: Array.isArray(specialization) ? specialization : [specialization] }
+    if (languages) queryFilter.languages = { $in: Array.isArray(languages) ? languages : [languages] }
+    if (maxPrice) queryFilter.price = { $lte: parseFloat(maxPrice) }
+    if (minRating) queryFilter.rating = { $gte: parseFloat(minRating) }
+    if (yearsOfExperience) queryFilter.yearsOfExperience = { $gte: parseInt(yearsOfExperience) }
+
+
+    const sortMap = {
+        'price': { price: 1 },
+        'reviewCount': { reviewCount: -1 }
+    };
+
+    const sortOptions = sortMap[sortBy] || { rating: -1 };
 
     // 1. Find all unique nutritionist IDs that have at least one 'available' slot
     const availableNutritionistIds = await Appointment.find({ status: 'available' }).distinct('nutritionistId');
@@ -89,8 +97,8 @@ const getFilteredCards = asyncHandler(async (req, res) => {
 
     const cards = await Nutritionist.find(queryFilter)
         .populate('user', ['username', 'profilePic'])
-        .select('specialization cardBio rating reviewCount price languages')
-        .sort({ rating: -1 })
+        .select('specialization cardBio rating reviewCount price languages yearsOfExperience')
+        .sort(sortOptions)
         .limit(limit)
 
     res.json({ count: cards.length, cards })
@@ -129,7 +137,7 @@ const getRecommendedForUser = asyncHandler(async (req, res) => {
         return res.json(goalOnlyMatch)
     }
 
-    
+
 
     res.json(recommended);
 })
