@@ -1,17 +1,18 @@
 const asyncHandler = require('express-async-handler')
 // const Profile = require('../model/customer')
 const Customer = require('../model/Customer')
-const createProfile = asyncHandler(async (req,res) => {
+
+const createProfile = asyncHandler(async (req, res) => {
     const { age, gender, height, currentWeight, targetWeight, allergies } = req.body;
 
-    const existingProfile = await Customer.findOne({user: req.user.id})
-    if(existingProfile) {
+    const existingProfile = await Customer.findOne({ user: req.user.id })
+    if (existingProfile) {
         res.status(400)
         throw new Error('Profile already exists for this user')
     }
 
     const profile = await Customer.create({
-        user:req.user.id,
+        user: req.user.id,
         age,
         gender,
         height,
@@ -36,6 +37,17 @@ const getProfile = asyncHandler(async (req, res) => {
     res.json(profile);
 });
 
+const getProfileById = asyncHandler(async (req, res) => {
+    const profile = await Customer.findOne({ user: req.params.userId }).populate('user', ['username', 'email', 'profilePic'])
+
+    if (!profile) {
+        res.status(404);
+        throw new Error('Profile not found');
+    }
+
+    res.json(profile);
+})
+
 const updateProfile = asyncHandler(async (req, res) => {
     // Find the user's profile and update it with the new data
     const updatedProfile = await Customer.findOneAndUpdate(
@@ -54,24 +66,24 @@ const updateProfile = asyncHandler(async (req, res) => {
 });
 //creat new goal
 // rout: nutrlink/api/customer/goal/
-const createGoal=asyncHandler(async(req,res)=>{
-    const newGoal={
-        data:req.body.data,
+const createGoal = asyncHandler(async (req, res) => {
+    const newGoal = {
+        data: req.body.data,
     }
-    const goal=await Customer.findOneAndUpdate(
-        {user:req.user.id},
-        {$push:{goals:newGoal}},
-        {new:true})
-        if(!goal){return res.status(404).json("the customer not found")}
-        res.status(201).json(goal)
-}) 
+    const goal = await Customer.findOneAndUpdate(
+        { user: req.user.id },
+        { $push: { goals: newGoal } },
+        { new: true })
+    if (!goal) { return res.status(404).json("the customer not found") }
+    res.status(201).json(goal)
+})
 //make goal as done
 // rout: nutrlink/api/customer/goal/
-const goalDone=asyncHandler(async(req,res)=>{
-    const goal= await Customer.findOneAndUpdate({user:req.user.id,"goals._id":req.body.goal_id},
-        {$set:{"goals.$.status":"done"}},{new:true})
-                if(!goal){return res.status(404).json("the customer not found or the goal id is wrong")}
-        res.status(200).json(goal)
+const goalDone = asyncHandler(async (req, res) => {
+    const goal = await Customer.findOneAndUpdate({ user: req.user.id, "goals._id": req.body.goal_id },
+        { $set: { "goals.$.status": "done" } }, { new: true })
+    if (!goal) { return res.status(404).json("the customer not found or the goal id is wrong") }
+    res.status(200).json(goal)
 })
 //remove goal 
 // rout: nutrlink/api/customer/goal/
@@ -90,12 +102,12 @@ const deleteGoal = asyncHandler(async (req, res) => {
 
 //get all goal 
 // rout: nutrlink/api/customer/goal
-const getGoal=asyncHandler(async(req,res)=>{
-    const goal= await Customer.findOne({user:req.user.id},
-        {goals:1,_id:0}
+const getGoal = asyncHandler(async (req, res) => {
+    const goal = await Customer.findOne({ user: req.user.id },
+        { goals: 1, _id: 0 }
     )
-            if(!goal){return res.status(404).json("the customer not found")}
-        res.status(200).json(goal)
+    if (!goal) { return res.status(404).json("the customer not found") }
+    res.status(200).json(goal)
 })
-module.exports = { createProfile, getProfile, updateProfile,createGoal,goalDone,deleteGoal,getGoal }
+module.exports = { createProfile, getProfile, getProfileById, updateProfile, createGoal, goalDone, deleteGoal, getGoal }
 

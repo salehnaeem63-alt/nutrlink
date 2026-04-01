@@ -3,7 +3,7 @@ const router = express.Router()
 const authToken = require('../middleware/verifyToken')
 const nutriValidation = require('../middleware/nutriValidation')
 
-const { createProfile, getProfile, updateProfile, getAllNutritionist,
+const { createProfile, getProfile, getProfileById, updateProfile, getAllNutritionist,
     getFilteredCards, getRecommendedForUser } = require('../controller/nutritionistController')
 
 router.get('/profile/all', getAllNutritionist)
@@ -15,5 +15,6 @@ router.put('/profile/me', authToken, nutriValidation, updateProfile)
 router.get('/cards', getFilteredCards)
 router.get('/recommended', authToken, getRecommendedForUser)
 
+router.get('/profile/:userId', authToken, getProfileById);
 
 module.exports = router

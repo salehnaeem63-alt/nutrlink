@@ -13,8 +13,7 @@ const createSlot = asyncHandler(async (req, res) => {
     throw new Error('Nutritionist profile required before creating time slots.')
   }
 
-  // FIX: Use the Profile's unique ID, not the User's ID
-  const nutritionistId = profile._id 
+  const nutritionistId = userId
 
   const slotExists = await Appointment.findOne({ nutritionistId, date, timeSlot })
 
