@@ -66,7 +66,7 @@ const getAvailableSlots = asyncHandler(async (req, res) => {
   const slots = await Appointment.find({ nutritionistId: nutritionistId, status: 'available' })
     .populate({
       path: 'nutritionistId',
-      populate: { path: 'user', select: 'username email' }
+      populate: ('nutritionistId', 'username email profilePic' )
     }).sort({ date: 1, timeSlot: 1 })
 
   res.json({
