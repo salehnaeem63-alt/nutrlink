@@ -13,7 +13,6 @@ const {
     getNutritionistSchedule,
     cancelAppointment,
     markCompleted,
-    getAppointmentHistory,
     rescheduleAppointment,
     getAllAppointments
 } = require('../controller/appointmentController');
@@ -34,7 +33,6 @@ router.put('/reschedule', authToken, cusValidation, rescheduleAppointment);
 
 // SHARED ROUTES (Customer & Nutritionist - Just need to be logged in)
 router.put('/cancel/:id', authToken, cancelAppointment);
-router.get('/history', authToken, getAppointmentHistory);
 
 
 // PUBLIC ROUTE (Anyone can view available slots)

@@ -23,9 +23,9 @@ const createSlot = asyncHandler(async (req, res) => {
   }
 
   const newSlot = await Appointment.create({
-    nutritionistId, 
-    date, 
-    timeSlot, 
+    nutritionistId,
+    date,
+    timeSlot,
     status: 'available'
   });
 
@@ -66,7 +66,7 @@ const getAvailableSlots = asyncHandler(async (req, res) => {
   const slots = await Appointment.find({ nutritionistId: nutritionistId, status: 'available' })
     .populate({
       path: 'nutritionistId',
-      populate: ('nutritionistId', 'username email profilePic' )
+      populate: ('nutritionistId', 'username email profilePic')
     }).sort({ date: 1, timeSlot: 1 })
 
   res.json({
@@ -101,7 +101,7 @@ const bookAppointment = asyncHandler(async (req, res) => {
 const getCustomerAppointments = asyncHandler(async (req, res) => {
   const customerId = req.user.id
 
-const appointments = await Appointment.find({ customerId, status: 'booked' })
+  const appointments = await Appointment.find({ customerId })
     .populate('nutritionistId', 'username email profilePic') // Just get the user details directly
     .sort({ date: 1, timeSlot: 1 });
 
@@ -121,28 +121,14 @@ const appointments = await Appointment.find({ customerId, status: 'booked' })
 
 const getNutritionistSchedule = asyncHandler(async (req, res) => {
   const nutritionistId = req.user.id
-  const { status } = req.query
 
-  const query = { nutritionistId };
-  if (status) {
-    query.status = status;
-  } else {
-    query.status = { $ne: 'completed' };
-  }
-  const schedule = await Appointment.find(query)
+  const schedule = await Appointment.find({ nutritionistId })
     .populate('customerId', 'username email profilePic')
     .sort({ date: 1, timeSlot: 1 })
 
-  if (schedule.length === 0) {
-    return res.json({
-      message: "You have no appointments in your schedule.",
-      count: 0,
-      schedule: []
-    })
-  }
 
   res.json({
-    message: "Schedule fetched successfully",
+    message: "Nutritionist data fetched",
     count: schedule.length,
     schedule
   })
@@ -167,8 +153,7 @@ const cancelAppointment = asyncHandler(async (req, res) => {
     throw new Error('Not authorized to cancel this appointment');
   }
 
-  appointment.customerId = undefined
-  appointment.status = 'available'
+  appointment.status = 'canceled'
   await appointment.save()
 
   res.json({ message: 'Appointment cancelled successfully' })
@@ -218,32 +203,6 @@ const markCompleted = asyncHandler(async (req, res) => {
   res.json({
     message: `Appointment successfully changed to ${appointment.status}`,
     currentStatus: appointment.status
-  })
-})
-
-const getAppointmentHistory = asyncHandler(async (req, res) => {
-  const userId = req.user.id
-
-  const appointment = await Appointment.find({
-    $or: [{ customerId: userId }, { nutritionistId: userId }],
-    status: 'completed'
-  })
-    .populate('nutritionistId', 'username email')
-    .populate('customerId', 'username email')
-    .sort({ date: -1, timeSlot: -1 })
-
-  if (appointment.length === 0) {
-    return res.json({
-      message: "No past history found",
-      count: 0,
-      appointment: []
-    })
-  }
-
-  res.json({
-    message: 'History fetched successfully',
-    count: appointment.length,
-    appointment
   })
 })
 
@@ -301,7 +260,6 @@ module.exports = {
   getNutritionistSchedule,
   cancelAppointment,
   markCompleted,
-  getAppointmentHistory,
   rescheduleAppointment,
   getAllAppointments
 }
