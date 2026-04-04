@@ -29,6 +29,8 @@ app.use('/nutrlink/api/appointments', require('./route/appointment'))
 
 app.use('/nutrlink/api/customer/goal', require('./route/goal'));
 
+app.use('/nutrlink/api/chat', require('./route/chat'))
+
 app.use('/nutrlink/api/plan', require('./route/dietPlan'))
 app.use('/nutrlink/api/AI', require('./route/ai'));
 
