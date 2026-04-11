@@ -42,6 +42,17 @@ const getProfile = asyncHandler(async (req, res) => {
     res.json(profile)
 });
 
+const getProfileById = asyncHandler(async (req, res) => {
+    const profile = await Nutritionist.findOne({ user: req.params.userId }).populate('user', ['username', 'email', 'profilePic'])
+
+    if (!profile) {
+        res.status(404);
+        throw new Error('Profile not found');
+    }
+
+    res.json(profile);
+})
+
 const updateProfile = asyncHandler(async (req, res) => {
     const updatedProfile = await Nutritionist.findOneAndUpdate(
         { user: req.user.id },
@@ -144,4 +155,5 @@ const getRecommendedForUser = asyncHandler(async (req, res) => {
 
 
 
-module.exports = { createProfile, getProfile, updateProfile, getAllNutritionist, getFilteredCards, getRecommendedForUser }
+
+module.exports = { createProfile, getProfile, getProfileById, updateProfile, getAllNutritionist, getFilteredCards, getRecommendedForUser }
