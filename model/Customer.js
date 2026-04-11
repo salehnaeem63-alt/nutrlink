@@ -10,17 +10,18 @@ const customerProfileSchema = new mongoose.Schema({
     age: Number,
     gender: { type: String, enum: ['Male', 'Female'] },
     height: Number, // in cm
+    startingWeight: Number,
     currentWeight: Number, // in kg
     targetWeight: Number,
     allergies: [String],
-    goals:[{
-        data:{type:String},
-        status:{
-            type:String,
-            enum:["done","pending"],
-            default:"pending"
+    goals: [{
+        data: { type: String },
+        status: {
+            type: String,
+            enum: ["done", "pending"],
+            default: "pending"
         }
     }]
-    }, { timestamps: true });
+}, { timestamps: true });
 
 module.exports = mongoose.model('Customer', customerProfileSchema);

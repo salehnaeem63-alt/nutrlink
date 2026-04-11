@@ -1,13 +1,20 @@
 const asyncHandler = require('express-async-handler')
 const Diet = require('../model/DietPlan')
+const Nutritionist = require('../model/Nutritionist')
+const Customer = require('../model/Customer')
 
-const createDiet = asyncHandler(async (req,res) => {
-    const {customerId, startDate, endDate, meals } = req.body
-    const nutritionistId = req.user.id
+const createDiet = asyncHandler(async (req, res) => {
+    const { customerId, startDate, endDate, meals } = req.body
+    
+    const nutritionistProfile = await Nutritionist.findOne({ user: req.user.id }).select('_id')
+    if (!nutritionistProfile) {
+        res.status(404);
+        throw new Error('Nutritionist profile not found. Please complete your profile setup.');
+    }
 
     const newDiet = await Diet.create({
-        nutritionistId,
-        customerId,
+        nutritionistId: nutritionistProfile._id,
+        customerId, // MUST BE CUSTOMER PROFILE ID FROM FRONTEND
         startDate,
         endDate,
         meals
@@ -19,19 +26,20 @@ const createDiet = asyncHandler(async (req,res) => {
     })
 });
 
-const updateDiet = asyncHandler(async (req ,res) => {
+const updateDiet = asyncHandler(async (req, res) => {
     if (Object.keys(req.body).length === 0)
         return res.status(400).json({ message: "No update data provided" });
+    
     const dietId = req.params.id
-
     const diet = await Diet.findById(dietId)
 
-    if(!diet) {
+    if (!diet) {
         res.status(404)
         throw new Error('Diet plan not found')
     }
 
-    if(diet.nutritionistId.toString() !== req.user.id) {
+    const nutritionistProfile = await Nutritionist.findOne({ user: req.user.id }).select('_id');
+    if (!nutritionistProfile || diet.nutritionistId.toString() !== nutritionistProfile._id.toString()) {
         res.status(403)
         throw new Error('Not authorized to update this diet plan')
     }
@@ -41,7 +49,6 @@ const updateDiet = asyncHandler(async (req ,res) => {
         req.body,
         { new: true, runValidators: true }
     );
-    
 
     res.json({
         message: 'Diet plan updated successfully',
@@ -51,15 +58,15 @@ const updateDiet = asyncHandler(async (req ,res) => {
 
 const deleteDiet = asyncHandler(async (req, res) => {
     const dietId = req.params.id
-
     const diet = await Diet.findById(dietId)
 
-    if(!diet) {
+    if (!diet) {
         res.status(404)
         throw new Error('Diet plan not found')
     }
 
-    if(diet.nutritionistId.toString() !== req.user.id) {
+    const nutritionistProfile = await Nutritionist.findOne({ user: req.user.id }).select('_id');
+    if (!nutritionistProfile || diet.nutritionistId.toString() !== nutritionistProfile._id.toString()) {
         res.status(403)
         throw new Error('Not authorized to delete this diet plan')
     }
@@ -68,55 +75,87 @@ const deleteDiet = asyncHandler(async (req, res) => {
 
     res.json({
         message: 'Diet plan deleted successfully',
-        Id: dietId 
+        Id: dietId
     })
 })
 
 const getDiets = asyncHandler(async (req, res) => {
-    let query = {}
+    let query = {};
 
-    if(req.user.role === 'nutritionist')
-        query.nutritionistId = req.user.id
+    if (req.user.role === 'nutritionist') {
+        const nutritionistProfile = await Nutritionist.findOne({ user: req.user.id }).select('_id');
+        if (!nutritionistProfile) {
+            return res.status(404).json({ success: false, message: "Nutritionist profile not found." });
+        }
+        query.nutritionistId = nutritionistProfile._id; 
+    }
 
-    if(req.user.role === 'customer')
-        query.customerId = req.user.id
+    if (req.user.role === 'customer') {
+        const customerProfile = await Customer.findOne({ user: req.user.id }).select('_id');
+        if (!customerProfile) {
+            return res.status(404).json({ success: false, message: "Customer profile not found." });
+        }
+        query.customerId = customerProfile._id;
+    }
 
     const diets = await Diet.find(query)
-        .populate('nutritionistId', 'username email')
-        .populate('customerId', 'username email')
-    
+        .populate({
+            path: 'nutritionistId',
+            populate: { path: 'user', select: 'username email' }
+        })
+        .populate({
+            path: 'customerId',
+            populate: { path: 'user', select: 'username email' }
+        });
+
+    if (diets.length === 0) {
+        return res.status(200).json({
+            success: true,
+            count: 0,
+            diets: [],
+            message: req.user.role === 'nutritionist'
+                ? "You haven't created any diet plans for clients yet."
+                : "You don't have any diet plans yet. Start by booking a nutritionist!"
+        });
+    }
 
     const formatedDiets = diets.map(diet => {
-const { meals, ...dietObj } = diet.toObject()
-
+        const { meals, ...dietObj } = diet.toObject();
         return {
             _id: dietObj._id,
             status: dietObj.status,
-            mealCount: meals.length,     // ✅ Now meals is defined!
-            progress: `${dietObj.progress}%`,
-            ...dietObj,                  // Spreads the rest of the diet details
-            meals: meals                 // ✅ Puts the long array at the very bottom
-        }
-    })
+            mealCount: meals ? meals.length : 0, 
+            progress: dietObj.progress !== undefined ? `${dietObj.progress}%` : '0%',
+            ...dietObj,                  
+            meals: meals || []           
+        };
+    });
+
     res.json({
         count: formatedDiets.length,
         diets: formatedDiets
     })
 })
 
-const DailyLog = require('../model/Progress')
-
 const markMealAsDone = asyncHandler(async (req, res) => {
     const { dietId, mealId } = req.params
 
-    const diet = await Diet.findOne({ _id: dietId, customerId: req.user.id })
+    // FIXED: Customer Auth ID -> Profile ID
+    const customerProfile = await Customer.findOne({ user: req.user.id }).select('_id');
+    if (!customerProfile) {
+        res.status(404);
+        throw new Error('Customer profile not found');
+    }
 
-    if(!diet) {
+    const diet = await Diet.findOne({ _id: dietId, customerId: customerProfile._id })
+
+    if (!diet) {
         res.status(404)
         throw new Error('Diet plan not found or unauthorized')
     }
 
     const meal = diet.meals.id(mealId)
+
     if(!meal) {
         res.status(404)
         throw new Error('Meal not found')
@@ -124,14 +163,18 @@ const markMealAsDone = asyncHandler(async (req, res) => {
 
     meal.isCompleted = !meal.isCompleted
 
-    const completedCount = diet.meals.filter(m => m.isCompleted).length
-    const totalMeals = diet.meals.length
-    const progressPercentage = Math.round((completedCount / totalMeals) * 100)
-
-    if(progressPercentage === 100) diet.status = 'completed'
-    else if(progressPercentage > 0) diet.status = 'in progress'
-    else diet.status = 'pending'
-
+    
+    const completedCount = diet.meals.filter(m => m.isCompleted).length;
+    const totalMeals = diet.meals.length;
+    const progressPercentage = Math.round((completedCount / totalMeals) * 100);
+    
+    if(progressPercentage === 100) 
+        diet.status = 'completed'
+    else if(progressPercentage > 0 && progressPercentage < 100)
+        diet.status = 'in progress'
+    else if(progressPercentage === 0)
+        diet.status = 'pending'
+    
     diet.progress = progressPercentage
     await diet.save()
 
@@ -166,18 +209,20 @@ const markMealAsDone = asyncHandler(async (req, res) => {
 })
 const addMealToDiet = asyncHandler(async (req, res) => {
     const dietId = req.params.id;
-    const { name, date } = req.body; // Extract name and date to check
-    
+    const { name, date } = req.body; 
+
     const diet = await Diet.findById(dietId);
 
-    if(!diet) {
+    if (!diet) {
         res.status(404);
         throw new Error('Diet plan not found');
     }
 
-    if(diet.nutritionistId.toString() !== req.user.id) {
+    // FIXED: Nutritionist Auth ID -> Profile ID Check
+    const nutritionistProfile = await Nutritionist.findOne({ user: req.user.id }).select('_id');
+    if (!nutritionistProfile || diet.nutritionistId.toString() !== nutritionistProfile._id.toString()) {
         res.status(403);
-        throw new Error('Not authorized to add meals');
+        throw new Error('Not authorized to modify meals in this diet plan');
     }
 
     const mealDate = new Date(date);
@@ -186,7 +231,7 @@ const addMealToDiet = asyncHandler(async (req, res) => {
         throw new Error('Meal date must be within the diet plan duration');
     }
 
-    // DUPLICATION CHECK: Check if a meal with this name already exists on this date
+    // 🔥 DUPLICATION CHECK: Check if a meal with this name already exists on this date
     const isDuplicate = diet.meals.some(
         (meal) => meal.name === name && meal.date.toISOString() === new Date(date).toISOString()
     );
@@ -198,15 +243,14 @@ const addMealToDiet = asyncHandler(async (req, res) => {
 
     diet.meals.push(req.body);
 
-    // Recalculate progress and status
     const completedCount = diet.meals.filter(m => m.isCompleted).length;
     const totalMeals = diet.meals.length;
     const progressPercentage = Math.round((completedCount / totalMeals) * 100);
     diet.progress = progressPercentage;
 
-    if(progressPercentage === 100)
+    if (progressPercentage === 100)
         diet.status = 'completed';
-    else if(progressPercentage > 0 && progressPercentage < 100)
+    else if (progressPercentage > 0 && progressPercentage < 100)
         diet.status = 'in progress';
     else
         diet.status = 'pending';
@@ -217,7 +261,7 @@ const addMealToDiet = asyncHandler(async (req, res) => {
         message: "Meal added successfully",
         meal: diet.meals[diet.meals.length - 1],
         mealCount: diet.meals.length,
-        progress: `${diet.progress}%`, // Added the % sign for consistency
+        progress: `${diet.progress}%`, 
         dietStatus: diet.status,
     });
 });
@@ -227,18 +271,20 @@ const removeMealFromDiet = asyncHandler(async (req, res) => {
 
     const diet = await Diet.findById(dietId)
 
-    if(!diet) {
+    if (!diet) {
         res.status(404)
         throw new Error('Diet plan not found')
     }
 
-    if(diet.nutritionistId.toString() !== req.user.id) {
-        res.status(403)
-        throw new Error('Not authorized to remove meals')
+    // FIXED: Nutritionist Auth ID -> Profile ID Check
+    const nutritionistProfile = await Nutritionist.findOne({ user: req.user.id }).select('_id');
+    if (!nutritionistProfile || diet.nutritionistId.toString() !== nutritionistProfile._id.toString()) {
+        res.status(403);
+        throw new Error('Not authorized to remove meals in this diet plan');
     }
 
     const meal = diet.meals.id(mealId)
-    if(!meal) {
+    if (!meal) {
         res.status(404)
         throw new Error('Meal not found')
     }
@@ -247,15 +293,15 @@ const removeMealFromDiet = asyncHandler(async (req, res) => {
 
     const totalMeals = diet.meals.length
     const completedCount = diet.meals.filter(m => m.isCompleted).length
-    const progressPercentage = totalMeals === 0 ? 0 : Math.round(( completedCount / totalMeals ) * 100)
+    const progressPercentage = totalMeals === 0 ? 0 : Math.round((completedCount / totalMeals) * 100)
 
     diet.progress = progressPercentage
 
-    if(totalMeals === 0 || progressPercentage === 0)
+    if (totalMeals === 0 || progressPercentage === 0)
         diet.status = 'pending'
-    else if(progressPercentage === 100)
+    else if (progressPercentage === 100)
         diet.status = 'completed'
-    else 
+    else
         diet.status = 'in progress'
 
     await diet.save()
@@ -269,10 +315,9 @@ const removeMealFromDiet = asyncHandler(async (req, res) => {
 })
 
 const updateMealInDiet = asyncHandler(async (req, res) => {
-
     if (Object.keys(req.body).length === 0)
         return res.status(400).json({ message: "No update data provided" });
-    
+
     const { dietId, mealId } = req.params;
 
     const diet = await Diet.findById(dietId);
@@ -282,31 +327,27 @@ const updateMealInDiet = asyncHandler(async (req, res) => {
         throw new Error('Diet plan not found');
     }
 
-    // Authorization check
-    if (diet.nutritionistId.toString() !== req.user.id) {
+    // FIXED: Nutritionist Auth ID -> Profile ID Check
+    const nutritionistProfile = await Nutritionist.findOne({ user: req.user.id }).select('_id');
+    if (!nutritionistProfile || diet.nutritionistId.toString() !== nutritionistProfile._id.toString()) {
         res.status(403);
-        throw new Error('Not authorized to update meals');
+        throw new Error('Not authorized to update meals in this diet plan');
     }
 
-    // Find the specific meal
     const meal = diet.meals.id(mealId);
     if (!meal) {
         res.status(404);
         throw new Error('Meal not found');
     }
 
-    // Update meal fields dynamically
-    // Using Object.assign allows us to update only the fields sent in req.body
     Object.assign(meal, req.body);
 
-    // Recalculate progress
     const totalMeals = diet.meals.length;
     const completedCount = diet.meals.filter(m => m.isCompleted).length;
     const progressPercentage = totalMeals === 0 ? 0 : Math.round((completedCount / totalMeals) * 100);
 
     diet.progress = progressPercentage;
 
-    // Update status logic
     if (totalMeals === 0 || progressPercentage === 0) {
         diet.status = 'pending';
     } else if (progressPercentage === 100) {
@@ -324,6 +365,7 @@ const updateMealInDiet = asyncHandler(async (req, res) => {
         dietStatus: diet.status
     });
 });
+
 module.exports = {
     createDiet,
     updateDiet,

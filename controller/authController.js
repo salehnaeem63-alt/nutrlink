@@ -37,10 +37,9 @@ const registerSchema = Joi.object({
 });
 
 const loginSchema = Joi.object({
-    email: Joi.string().email(),
-    username: Joi.string(),
+    identifier: Joi.string().required(),
     password: Joi.string().required()
-}).xor('email', 'username');
+});
 
 // --- HELPER ---
 /**
@@ -155,14 +154,25 @@ const registerUser = asyncHandler(async (req, res) => {
 // @desc    Login user
 // @route   POST /api/auth/login
 const loginUser = asyncHandler(async (req, res) => {
+    // 1. Validate against the new schema (identifier + password)
     const { error } = loginSchema.validate(req.body);
-    if (error) { res.status(400); throw new Error(error.details[0].message); }
+    if (error) { 
+        res.status(400); 
+        throw new Error(error.details[0].message); 
+    }
 
-    const query = req.body.email ? { email: req.body.email } : { username: req.body.username };
-    const user = await User.findOne(query);
+    const { identifier, password } = req.body;
 
-    if (user && (await bcrypt.compare(req.body.password, user.password))) {
-        // Block unapproved nutritionists from logging in
+    // 2. Search using the new identifier variable
+    const user = await User.findOne({
+        $or: [
+            { email: identifier },
+            { username: identifier }
+        ]
+    });
+
+    // 3. Compare password and handle login
+    if (user && (await bcrypt.compare(password, user.password))) {
         if (user.role === 'nutritionist' && !user.isApproved) {
             res.status(403);
             throw new Error('Your account is pending admin approval. You will be notified once approved.');
@@ -173,7 +183,8 @@ const loginUser = asyncHandler(async (req, res) => {
             process.env.JWT_SECRET,
             { expiresIn: '30d' }
         );
-        const { password, ...otherDetails } = user._doc;
+        
+        const { password: _, ...otherDetails } = user._doc;
         res.status(200).json({ ...otherDetails, token });
     } else {
         res.status(401);

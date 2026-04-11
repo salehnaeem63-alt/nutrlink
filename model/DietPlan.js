@@ -32,12 +32,12 @@ const dietSchema = new mongoose.Schema({
     nutritionistId: {
         type: mongoose.Schema.Types.ObjectId,
         required: true,
-        ref: 'User'
+        ref: 'Nutritionist'
     },
     customerId: {
         type: mongoose.Schema.Types.ObjectId,
         required: true,
-        ref: 'User'
+        ref: 'Customer'
     },
     startDate: {
         type: Date,
