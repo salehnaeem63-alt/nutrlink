@@ -1,7 +1,15 @@
+const http = require('http');
+const socketIo = require('socket.io');
 const express = require("express");
 const cors = require("cors");
 const app = express();
-const connectDB = require('./config/db');
+const server = http.createServer(app);
+const io = socketIo(server, {
+  cors: {
+    origin: "*",
+    methods: ["GET", "POST"]
+  }
+});const connectDB = require('./config/db');
 const { errorHandler, notFound } = require('./middleware/errorMiddleware');
 const dotenv = require('dotenv');
 
@@ -55,7 +63,145 @@ app.get('/', (req, res) => {
         cloudinary: process.env.CLOUDINARY_CLOUD_NAME ? '✅ Configured' : '❌ Not configured'
     });
 });
+// ══════════════════════════════════════════════════════════════
+// SOCKET.IO VIDEO CALL SETUP
+// ══════════════════════════════════════════════════════════════
+const rooms = new Map();
 
+io.on('connection', (socket) => {
+  console.log('New client connected:', socket.id);
+
+  socket.on('join-room', async ({ roomId, userId, username }) => {
+    try {
+      if (!roomId) {
+        socket.emit("room-id-missing");
+        return;
+      }
+
+      const Appointment = require('./model/Appointment');
+      
+      const appointment = await Appointment.findById(roomId)
+        .populate('nutritionistId', 'username')
+        .populate('customerId', 'username');
+
+      if (!appointment) {
+        socket.emit("invalid-room", { message: "Appointment not found" });
+        return;
+      }
+
+      if (appointment.status !== 'booked') {
+        socket.emit("invalid-room", { 
+          message: `This appointment is ${appointment.status}. Only booked appointments can start a video call.` 
+        });
+        return;
+      }
+
+      const isNutritionist = appointment.nutritionistId._id.toString() === userId;
+      const isCustomer = appointment.customerId && appointment.customerId._id.toString() === userId;
+
+      if (!isNutritionist && !isCustomer) {
+        socket.emit("not-authorized", { 
+          message: "You are not a participant in this appointment" 
+        });
+        return;
+      }
+
+      if (!rooms.has(roomId)) {
+        rooms.set(roomId, new Map());
+      }
+
+      const room = rooms.get(roomId);
+
+      if (room.size >= 2) {
+        socket.emit('room-full', { message: "Room is full. Maximum 2 participants allowed." });
+        return;
+      }
+
+      for (let [_, user] of room.entries()) {
+        if (user.userId === userId) {
+          socket.emit("already-joined", { message: "You are already in this room" });
+          return;
+        }
+      }
+
+      socket.join(roomId);
+      room.set(socket.id, { userId, username, socketId: socket.id });
+
+      const participants = Array.from(room.entries())
+        .filter(([id]) => id !== socket.id)
+        .map(([id, user]) => ({
+          socketId: id,
+          username: user.username,
+          userId: user.userId
+        }));
+
+      socket.emit('room-users', { participants });
+      socket.to(roomId).emit('user-joined', { socketId: socket.id, username, userId });
+
+      if (room.size === 2) {
+        io.to(roomId).emit("call-ready");
+      }
+
+      console.log(`✅ User ${username} joined room ${roomId}`);
+
+    } catch (err) {
+      console.error('❌ Error in join-room:', err);
+      socket.emit("server-error", { message: "An error occurred" });
+    }
+  });
+
+  socket.on('offer', ({ to, offer }) => {
+    io.to(to).emit('offer', { from: socket.id, offer });
+  });
+
+  socket.on('answer', ({ to, answer }) => {
+    io.to(to).emit('answer', { from: socket.id, answer });
+  });
+
+  socket.on('ice-candidate', ({ to, candidate }) => {
+    io.to(to).emit('ice-candidate', { from: socket.id, candidate });
+  });
+
+  socket.on("toggle-mic", ({ roomId, enabled }) => {
+    socket.to(roomId).emit("user-mic-changed", { userId: socket.id, enabled });
+  });
+
+  socket.on("toggle-camera", ({ roomId, enabled }) => {
+    socket.to(roomId).emit("user-camera-changed", { userId: socket.id, enabled });
+  });
+
+  socket.on('leave-room', ({ roomId }) => {
+    handleLeaveRoom(socket, roomId);
+  });
+
+  socket.on('disconnect', () => {
+    console.log('Client disconnected:', socket.id);
+    for (const [roomId, room] of rooms.entries()) {
+      if (room.has(socket.id)) {
+        handleLeaveRoom(socket, roomId);
+      }
+    }
+  });
+});
+
+function handleLeaveRoom(socket, roomId) {
+  if (!rooms.has(roomId)) return;
+  const room = rooms.get(roomId);
+  const user = room.get(socket.id);
+  if (!user) return;
+
+  room.delete(socket.id);
+  socket.leave(roomId);
+  socket.to(roomId).emit('user-left', { socketId: socket.id });
+  console.log(`👋 User ${user.username} left room ${roomId}`);
+
+  if (room.size === 0) {
+    rooms.delete(roomId);
+    console.log(`🗑️ Room ${roomId} deleted`);
+  } else {
+    socket.to(roomId).emit("call-ended");
+  }
+}
 // ══════════════════════════════════════════════════════════════
 // ERROR HANDLERS (MUST come after all routes)
 // ══════════════════════════════════════════════════════════════
@@ -65,12 +211,16 @@ app.use(errorHandler);
 // ══════════════════════════════════════════════════════════════
 // START SERVER
 // ══════════════════════════════════════════════════════════════
+// ══════════════════════════════════════════════════════════════
+// START SERVER
+// ══════════════════════════════════════════════════════════════
 const PORT = process.env.PORT || 5000;
-app.listen(PORT, () => {
+server.listen(PORT, () => {
     console.log(`\n${'═'.repeat(60)}`);
     console.log('🚀 NutriPlan Server Started');
     console.log('═'.repeat(60));
     console.log(`📡 Server:     http://localhost:${PORT}`);
+    console.log(`🎥 Socket.IO:  Connected`);
     console.log(`📁 Cloudinary: ${process.env.CLOUDINARY_CLOUD_NAME || '❌ NOT CONFIGURED'}`);
     console.log(`${'═'.repeat(60)}\n`);
 });
