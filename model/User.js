@@ -37,6 +37,10 @@
         credentialImage: {
             type: String,
             default: null
+        },
+        lastSeen: {
+            type: Date,
+            default: Date.now
         }
 
     }, { timestamps: true });
