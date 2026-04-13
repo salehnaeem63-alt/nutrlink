@@ -14,7 +14,6 @@ const io = socketIo(server, {
 const { errorHandler, notFound } = require('./middleware/errorMiddleware');
 const dotenv = require('dotenv');
 const { Server } = require('socket.io')
-const http = require('http')
 
 dotenv.config();
 connectDB();
@@ -25,14 +24,7 @@ app.use(cors({
     credentials: true
 }));
 
-const server = http.createServer(app)
 
-const io = new Server(server, {
-    cors: {
-        origin: 'http://localhost:5173',
-        credentials: true
-    }
-})
 
 let onlineUsers = []
 io.on("connection", (socket) => {
