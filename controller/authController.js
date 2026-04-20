@@ -19,7 +19,7 @@ if (!process.env.CLOUDINARY_CLOUD_NAME || !process.env.CLOUDINARY_API_KEY || !pr
 } else {
     cloudinary.config({
         cloud_name: process.env.CLOUDINARY_CLOUD_NAME,
-        api_key:    process.env.CLOUDINARY_API_KEY,
+        api_key: process.env.CLOUDINARY_API_KEY,
         api_secret: process.env.CLOUDINARY_API_SECRET,
     });
     console.log('✅ Cloudinary configured:', process.env.CLOUDINARY_CLOUD_NAME);
@@ -136,12 +136,12 @@ const registerUser = asyncHandler(async (req, res) => {
             { expiresIn: '30d' }
         );
         res.status(201).json({
-            _id:             user._id,
-            username:        user.username,
-            email:           user.email,
-            role:            user.role,
-            isApproved:      user.isApproved,
-            profilePic:      user.profilePic,
+            _id: user._id,
+            username: user.username,
+            email: user.email,
+            role: user.role,
+            isApproved: user.isApproved,
+            profilePic: user.profilePic,
             credentialImage: user.credentialImage,
             token,
         });
@@ -156,9 +156,9 @@ const registerUser = asyncHandler(async (req, res) => {
 const loginUser = asyncHandler(async (req, res) => {
     // 1. Validate against the new schema (identifier + password)
     const { error } = loginSchema.validate(req.body);
-    if (error) { 
-        res.status(400); 
-        throw new Error(error.details[0].message); 
+    if (error) {
+        res.status(400);
+        throw new Error(error.details[0].message);
     }
 
     const { identifier, password } = req.body;
@@ -183,7 +183,7 @@ const loginUser = asyncHandler(async (req, res) => {
             process.env.JWT_SECRET,
             { expiresIn: '30d' }
         );
-        
+
         const { password: _, ...otherDetails } = user._doc;
         res.status(200).json({ ...otherDetails, token });
     } else {
@@ -207,6 +207,14 @@ const googleLogin = asyncHandler(async (req, res) => {
     const { email, name, picture } = ticket.getPayload();
     let user = await User.findOne({ email });
 
+    if (user) {
+        // UPDATE existing user with fresh Google data
+        user.profilePic = picture;
+        user.username = name.replace(/\s+/g, '').toLowerCase();
+        user.lastSeen = new Date();
+        await user.save();
+    }
+
     if (!user) {
         const salt = await bcrypt.genSalt(10);
         const hashedPassword = await bcrypt.hash(Math.random().toString(36), salt);
@@ -216,10 +224,10 @@ const googleLogin = asyncHandler(async (req, res) => {
         const isApproved = (role || 'customer') === 'customer';
 
         user = await User.create({
-            username:   name.replace(/\s+/g, '').toLowerCase() + Math.floor(Math.random() * 1000),
+            username: name.replace(/\s+/g, '').toLowerCase() + Math.floor(Math.random() * 1000),
             email,
-            password:   hashedPassword,
-            role:       role || 'customer',
+            password: hashedPassword,
+            role: role || 'customer',
             profilePic: picture,
             isApproved,
         });
