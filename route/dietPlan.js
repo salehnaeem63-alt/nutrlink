@@ -11,10 +11,16 @@ const {
     markMealAsDone,
     addMealToDiet,
     removeMealFromDiet,
-    updateMealInDiet
+    updateMealInDiet,
+    getNutritionistCustomers // 1. <-- ADDED IMPORT HERE
 } = require('../controller/dietPlanController')
 
 router.use(authToken)
+
+// 2. <-- ADDED NEW ROUTE HERE (Must be above /:id routes!)
+// We use nutriValidation to ensure only nutritionists can fetch their clients
+router.get('/my-customers', nutriValidation, getNutritionistCustomers);
+
 
 // General Diet Routes
 router.route('/')
@@ -34,5 +40,6 @@ router.delete('/:id/meals/:mealId', nutriValidation, removeMealFromDiet);
 router.patch('/:dietId/meals/:mealId/status', cusValidation, markMealAsDone);
 
 // 2. Base path for the Nutritionist to edit meal details
-router.patch('/:dietId/meals/:mealId', nutriValidation, updateMealInDiet); // Customer only
+router.patch('/:dietId/meals/:mealId', nutriValidation, updateMealInDiet); 
+
 module.exports = router
