@@ -2,6 +2,7 @@ const express=require('express')
 const router= express.Router()
 const asyncHandler=require('express-async-handler')
 const Chat= require('../model/Ai')
+const authToken = require('../middleware/verifyToken')
 const OpenAI =require( "openai");
 const Customer=require('../model/Customer')
 const client = new OpenAI({
